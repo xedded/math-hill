@@ -28,9 +28,11 @@ export default function GamePage() {
   const [problem, setProblem] = useState<Problem | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
   const [timeLeft, setTimeLeft] = useState(10)
-  const [gameState, setGameState] = useState<'playing' | 'correct' | 'wrong' | 'timeout'>('playing')
+  const [gameState, setGameState] = useState<'playing' | 'correct' | 'great' | 'perfect' | 'wrong' | 'timeout'>('playing')
   const [showFeedback, setShowFeedback] = useState(false)
   const [shakeEffect, setShakeEffect] = useState(false)
+  const [points, setPoints] = useState(0)
+  const [startTime, setStartTime] = useState<number | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -107,6 +109,7 @@ export default function GamePage() {
   // Initialize first problem
   useEffect(() => {
     setProblem(generateProblem())
+    setStartTime(Date.now())
   }, [operation, level])
 
   // Timer countdown
@@ -133,6 +136,7 @@ export default function GamePage() {
 
   const handleTimeout = () => {
     setGameState('timeout')
+    setPoints(0)
     triggerShakeEffect()
     setShowFeedback(true)
     feedbackTimeoutRef.current = setTimeout(nextProblem, 2000)
@@ -153,16 +157,30 @@ export default function GamePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!problem || userAnswer === '') return
+    if (!problem || userAnswer === '' || !startTime) return
 
     const isCorrect = parseInt(userAnswer) === problem.answer
+    const responseTime = (Date.now() - startTime) / 1000
 
     if (isCorrect) {
-      setGameState('correct')
-      setLevel(Math.min(1000, level + 1))
+      let earnedPoints = 1
+      if (responseTime <= 2) {
+        earnedPoints = 10
+        setGameState('perfect')
+      } else if (responseTime <= 5) {
+        earnedPoints = 5
+        setGameState('great')
+      } else {
+        earnedPoints = 1
+        setGameState('correct')
+      }
+
+      setPoints(earnedPoints)
+      setLevel(Math.min(1000, level + earnedPoints))
       setShowFeedback(true)
-      feedbackTimeoutRef.current = setTimeout(nextProblem, 1500)
+      feedbackTimeoutRef.current = setTimeout(nextProblem, 2000)
     } else {
+      setPoints(0)
       setGameState('wrong')
       setLevel(Math.max(1, level - 5))
       triggerShakeEffect()
@@ -176,6 +194,7 @@ export default function GamePage() {
     setShowFeedback(false)
     setUserAnswer('')
     setTimeLeft(10)
+    setStartTime(Date.now())
     setProblem(generateProblem())
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current)
   }
@@ -210,9 +229,61 @@ export default function GamePage() {
           50% { transform: scale(1.1); }
           100% { transform: scale(1); }
         }
+        @keyframes greatZoom {
+          0% { transform: scale(1) rotate(0deg); }
+          25% { transform: scale(1.2) rotate(-2deg); }
+          50% { transform: scale(1.1) rotate(1deg); }
+          75% { transform: scale(1.15) rotate(-1deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes perfectExplode {
+          0% {
+            transform: scale(1) rotate(0deg);
+            filter: blur(0px) brightness(1) saturate(1);
+          }
+          20% {
+            transform: scale(1.3) rotate(-5deg);
+            filter: blur(1px) brightness(1.5) saturate(1.8);
+          }
+          40% {
+            transform: scale(0.9) rotate(3deg);
+            filter: blur(0.5px) brightness(1.8) saturate(2);
+          }
+          60% {
+            transform: scale(1.2) rotate(-2deg);
+            filter: blur(1.5px) brightness(2) saturate(2.5);
+          }
+          80% {
+            transform: scale(1.05) rotate(1deg);
+            filter: blur(0.3px) brightness(1.6) saturate(1.5);
+          }
+          100% {
+            transform: scale(1) rotate(0deg);
+            filter: blur(0px) brightness(1) saturate(1);
+          }
+        }
         @keyframes wrongFlash {
           0%, 50%, 100% { opacity: 1; }
           25%, 75% { opacity: 0.3; }
+        }
+        @keyframes perfectGlow {
+          0% {
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+          }
+          50% {
+            box-shadow: 0 0 50px rgba(255,255,255,0.8), 0 0 100px rgba(255,255,255,0.4);
+            filter: drop-shadow(0 0 30px rgba(255,255,255,1));
+          }
+          100% {
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+          }
+        }
+        @keyframes greatFlash {
+          0% { background: rgba(255,255,255,0); }
+          50% { background: rgba(255,255,255,0.1); }
+          100% { background: rgba(255,255,255,0); }
         }
         .shake {
           animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
@@ -220,8 +291,20 @@ export default function GamePage() {
         .correct-pulse {
           animation: correctPulse 0.8s ease-in-out;
         }
+        .great-zoom {
+          animation: greatZoom 1.2s ease-in-out;
+        }
+        .perfect-explode {
+          animation: perfectExplode 1.5s ease-in-out;
+        }
         .wrong-flash {
           animation: wrongFlash 0.8s ease-in-out;
+        }
+        .perfect-glow {
+          animation: perfectGlow 2s ease-in-out infinite;
+        }
+        .great-flash {
+          animation: greatFlash 1s ease-in-out;
         }
       `}</style>
 
@@ -263,7 +346,7 @@ export default function GamePage() {
         </div>
 
         {/* Main Game Area */}
-        <div className={`text-center space-y-8 ${showFeedback && gameState === 'correct' ? 'correct-pulse' : ''} ${showFeedback && (gameState === 'wrong' || gameState === 'timeout') ? 'wrong-flash' : ''}`}>
+        <div className={`text-center space-y-8 ${showFeedback && gameState === 'correct' ? 'correct-pulse' : ''} ${showFeedback && gameState === 'great' ? 'great-zoom' : ''} ${showFeedback && gameState === 'perfect' ? 'perfect-explode' : ''} ${showFeedback && (gameState === 'wrong' || gameState === 'timeout') ? 'wrong-flash' : ''}`}>
           {!showFeedback ? (
             <>
               {/* Problem with inline styling */}
@@ -318,15 +401,46 @@ export default function GamePage() {
             </>
           ) : (
             <div className="text-center space-y-4">
-              {gameState === 'correct' && (
+              {gameState === 'perfect' && (
+                <div
+                  className="perfect-glow"
+                  style={{
+                    fontSize: '10rem',
+                    fontWeight: '900',
+                    background: 'linear-gradient(45deg, #fff, #ffff00, #fff)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    textShadow: '0 0 50px rgba(255,255,255,0.8)',
+                    letterSpacing: '0.1em'
+                  }}
+                >
+                  LIGHTNING!
+                </div>
+              )}
+              {gameState === 'great' && (
                 <div
                   style={{
                     fontSize: '8rem',
-                    animation: 'correctPulse 0.8s ease-in-out',
-                    filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.8))'
+                    fontWeight: '800',
+                    color: '#00ff88',
+                    textShadow: '0 0 30px rgba(0,255,136,0.8), 0 0 60px rgba(0,255,136,0.4)',
+                    filter: 'drop-shadow(0 0 20px rgba(0,255,136,0.6))'
                   }}
                 >
-                  ✨ PERFECT! ✨
+                  FAST!
+                </div>
+              )}
+              {gameState === 'correct' && (
+                <div
+                  style={{
+                    fontSize: '6rem',
+                    fontWeight: '700',
+                    color: '#88ff88',
+                    textShadow: '0 0 20px rgba(136,255,136,0.6)'
+                  }}
+                >
+                  CORRECT!
                 </div>
               )}
               {(gameState === 'wrong' || gameState === 'timeout') && (
@@ -334,12 +448,13 @@ export default function GamePage() {
                   <div
                     style={{
                       fontSize: '6rem',
+                      fontWeight: '800',
                       color: '#ff4444',
                       textShadow: '0 0 20px rgba(255,68,68,0.8)',
                       animation: 'wrongFlash 0.8s ease-in-out'
                     }}
                   >
-                    💥 OOPS! 💥
+                    WRONG!
                   </div>
                   <div
                     style={{
@@ -359,7 +474,9 @@ export default function GamePage() {
                   textShadow: '0 0 10px rgba(255,255,255,0.3)'
                 }}
               >
-                {gameState === 'correct' && 'LEVEL UP! +1'}
+                {gameState === 'perfect' && `INCREDIBLE! +${points} LEVELS`}
+                {gameState === 'great' && `AMAZING! +${points} LEVELS`}
+                {gameState === 'correct' && `GOOD! +${points} LEVEL`}
                 {gameState === 'wrong' && 'TRY HARDER! -5 Levels'}
                 {gameState === 'timeout' && 'TOO SLOW! -5 Levels'}
               </div>
@@ -384,6 +501,40 @@ export default function GamePage() {
         </div>
 
         {/* Background effects */}
+        {showFeedback && gameState === 'perfect' && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              background: `
+                radial-gradient(circle at 30% 20%, rgba(255,255,0,0.3) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(255,255,255,0.2) 0%, transparent 60%),
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 70%)
+              `,
+              animation: 'perfectExplode 1.5s ease-in-out'
+            }}
+          />
+        )}
+
+        {showFeedback && gameState === 'great' && (
+          <div
+            className="great-flash"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              background: `radial-gradient(circle at 50% 50%, rgba(0,255,136,0.2) 0%, transparent 70%)`
+            }}
+          />
+        )}
+
         {showFeedback && gameState === 'correct' && (
           <div
             style={{
@@ -393,7 +544,7 @@ export default function GamePage() {
               width: '100%',
               height: '100%',
               pointerEvents: 'none',
-              background: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 70%)`,
+              background: `radial-gradient(circle at 50% 50%, rgba(136,255,136,0.15) 0%, transparent 70%)`,
               animation: 'correctPulse 1.5s ease-in-out'
             }}
           />
