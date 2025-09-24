@@ -209,7 +209,21 @@ export default function GamePage() {
 
   return (
     <>
-      <style jsx>{`
+      <style jsx global>{`
+        /* Hide number input spinners completely */
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+          display: none;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+          appearance: textfield;
+        }
+        input[type=number]::-webkit-textfield-decoration-container {
+          display: none;
+        }
         @keyframes shake {
           10%, 90% {
             transform: translate3d(-1px, 0, 0) rotate(-1deg);
