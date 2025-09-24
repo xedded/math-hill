@@ -184,14 +184,13 @@ export default function GamePage() {
     }
   }
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!problem || userAnswer === '' || !startTime) return
-
-    const answerNumber = Number(userAnswer); const isCorrect = !isNaN(answerNumber) && answerNumber === problem.answer
+n  const handleSubmitWithValue = (answer: string) => {
+    if (!problem || answer === '' || !startTime) return
+    const answerNumber = Number(answer)
+    const isCorrect = !isNaN(answerNumber) && answerNumber === problem.answer
+    console.log('Auto-validation:', { answer, answerNumber, expected: problem.answer, isCorrect })
     const responseTime = (Date.now() - startTime) / 1000
     const timerSettings = getTimerSettings(level)
-
     if (isCorrect) {
       let earnedPoints = 1
       if (responseTime <= timerSettings.perfectThreshold) {
@@ -204,7 +203,6 @@ export default function GamePage() {
         earnedPoints = 1
         setGameState('correct')
       }
-
       setPoints(earnedPoints)
       setLevel(Math.min(1000, level + earnedPoints))
       setShowFeedback(true)
@@ -217,6 +215,10 @@ export default function GamePage() {
       setShowFeedback(true)
       feedbackTimeoutRef.current = setTimeout(nextProblem, 2000)
     }
+  }
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    handleSubmitWithValue(userAnswer)
   }
 
   const nextProblem = () => {
@@ -427,7 +429,7 @@ export default function GamePage() {
                         if (value.length >= expectedDigits && value !== '' && !value.includes('.')) {
                           // Small delay to ensure state is updated
                           setTimeout(() => {
-                            handleSubmit()
+                            handleSubmitWithValue(value)
                           }, 10)
                         }
                       }}
