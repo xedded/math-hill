@@ -184,7 +184,7 @@ export default function GamePage() {
     }
   }
 
-n  const handleSubmitWithValue = (answer: string) => {
+  const handleSubmitWithValue = (answer: string) => {
     if (!problem || answer === '' || !startTime) return
     const answerNumber = Number(answer)
     const isCorrect = !isNaN(answerNumber) && answerNumber === problem.answer
