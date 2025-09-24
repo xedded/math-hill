@@ -10,12 +10,12 @@ const operations = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col items-center justify-center p-4">
       <div className="text-center mb-12">
-        <h1 className="text-6xl md:text-8xl font-bold text-indigo-600 mb-4 tracking-tight">
+        <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 tracking-tight drop-shadow-2xl">
           Math Hill
         </h1>
-        <p className="text-xl text-gray-600 max-w-md mx-auto">
+        <p className="text-xl text-gray-300 max-w-md mx-auto">
           Climb the mathematical mountain one problem at a time!
         </p>
       </div>
@@ -39,7 +39,7 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="mt-12 text-center text-gray-500 text-sm">
+      <div className="mt-12 text-center text-gray-400 text-sm">
         <p>Choose an operation to start your math adventure!</p>
       </div>
     </div>
