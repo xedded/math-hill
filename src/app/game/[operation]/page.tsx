@@ -34,6 +34,20 @@ export default function GamePage() {
   const [points, setPoints] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
 
+  // Calculate dynamic timer and bonus thresholds based on level
+  const getTimerSettings = (level: number) => {
+    const bonusTime = Math.floor(level / 100) * 5 // +5s every 100 levels
+    const baseTime = 10 + bonusTime
+    const perfectThreshold = 2 + Math.floor(level / 100) // +1s every 100 levels
+    const greatThreshold = 5 + Math.floor(level / 100) // +1s every 100 levels
+
+    return {
+      maxTime: baseTime,
+      perfectThreshold,
+      greatThreshold
+    }
+  }
+
   const inputRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -56,48 +70,48 @@ export default function GamePage() {
   const generateProblem = (): Problem => {
     let num1: number, num2: number, answer: number
 
+    // Calculate difficulty progression - smoother curve
+    const getDifficultyRange = (level: number, operation: string) => {
+      if (operation === 'addition' || operation === 'subtraction') {
+        if (level <= 50) return { min: 1, max: 9 } // Single digits
+        if (level <= 150) return { min: 1, max: 99 } // Two digits
+        if (level <= 300) return { min: 10, max: 999 } // Three digits
+        if (level <= 500) return { min: 100, max: 9999 } // Four digits
+        return { min: 1000, max: 99999 } // Five digits
+      } else {
+        // Multiplication and division - more gradual
+        if (level <= 100) return { min: 1, max: 9 } // Single digits
+        if (level <= 250) return { min: 1, max: 19 } // Up to 19
+        if (level <= 450) return { min: 1, max: 49 } // Up to 49
+        if (level <= 700) return { min: 1, max: 99 } // Two digits
+        return { min: 1, max: 199 } // Up to 199
+      }
+    }
+
+    const range = getDifficultyRange(level, operation)
+
     switch (operation) {
       case 'addition':
-        const maxDigitsAdd = Math.min(5, Math.floor(level / 200) + 1)
-        const maxNumAdd = Math.pow(10, maxDigitsAdd) - 1
-        num1 = Math.floor(Math.random() * maxNumAdd) + 1
-        num2 = Math.floor(Math.random() * maxNumAdd) + 1
+        num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        num2 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
         answer = num1 + num2
         return { num1, num2, answer, symbol: '+' }
 
       case 'subtraction':
-        const maxDigitsSub = Math.min(5, Math.floor(level / 200) + 1)
-        const maxNumSub = Math.pow(10, maxDigitsSub) - 1
-        num1 = Math.floor(Math.random() * maxNumSub) + 1
-        num2 = Math.floor(Math.random() * num1) + 1
+        num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        num2 = Math.floor(Math.random() * num1) + 1 // Ensure positive result
         answer = num1 - num2
         return { num1, num2, answer, symbol: '-' }
 
       case 'multiplication':
-        if (level <= 100) {
-          num1 = Math.floor(Math.random() * 9) + 1
-          num2 = Math.floor(Math.random() * 9) + 1
-        } else if (level <= 500) {
-          num1 = Math.floor(Math.random() * 99) + 1
-          num2 = Math.floor(Math.random() * 99) + 1
-        } else {
-          num1 = Math.floor(Math.random() * 999) + 1
-          num2 = Math.floor(Math.random() * 999) + 1
-        }
+        num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        num2 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
         answer = num1 * num2
         return { num1, num2, answer, symbol: '×' }
 
       case 'division':
-        if (level <= 100) {
-          answer = Math.floor(Math.random() * 9) + 1
-          num2 = Math.floor(Math.random() * 9) + 1
-        } else if (level <= 500) {
-          answer = Math.floor(Math.random() * 99) + 1
-          num2 = Math.floor(Math.random() * 99) + 1
-        } else {
-          answer = Math.floor(Math.random() * 999) + 1
-          num2 = Math.floor(Math.random() * 999) + 1
-        }
+        answer = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        num2 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
         num1 = answer * num2
         return { num1, num2, answer, symbol: '÷' }
 
@@ -161,13 +175,14 @@ export default function GamePage() {
 
     const isCorrect = parseInt(userAnswer) === problem.answer
     const responseTime = (Date.now() - startTime) / 1000
+    const timerSettings = getTimerSettings(level)
 
     if (isCorrect) {
       let earnedPoints = 1
-      if (responseTime <= 2) {
+      if (responseTime <= timerSettings.perfectThreshold) {
         earnedPoints = 10
         setGameState('perfect')
-      } else if (responseTime <= 5) {
+      } else if (responseTime <= timerSettings.greatThreshold) {
         earnedPoints = 5
         setGameState('great')
       } else {
@@ -190,10 +205,11 @@ export default function GamePage() {
   }
 
   const nextProblem = () => {
+    const timerSettings = getTimerSettings(level)
     setGameState('playing')
     setShowFeedback(false)
     setUserAnswer('')
-    setTimeLeft(10)
+    setTimeLeft(timerSettings.maxTime)
     setStartTime(Date.now())
     setProblem(generateProblem())
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current)
@@ -351,7 +367,7 @@ export default function GamePage() {
           <div className="w-64 h-2 bg-white/30 rounded-full overflow-hidden">
             <div
               className="h-full bg-white transition-all duration-1000 ease-linear"
-              style={{ width: `${(timeLeft / 10) * 100}%` }}
+              style={{ width: `${(timeLeft / getTimerSettings(level).maxTime) * 100}%` }}
             />
           </div>
           <div className="text-center mt-2 text-sm opacity-75">
@@ -387,7 +403,19 @@ export default function GamePage() {
                       ref={inputRef}
                       type="number"
                       value={userAnswer}
-                      onChange={(e) => setUserAnswer(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setUserAnswer(value)
+
+                        // Auto-validate when correct number of digits is entered
+                        const expectedDigits = problem.answer.toString().length
+                        if (value.length === expectedDigits && value !== '' && !value.includes('.')) {
+                          // Small delay to ensure state is updated
+                          setTimeout(() => {
+                            handleSubmit(new Event('submit') as any)
+                          }, 10)
+                        }
+                      }}
                       style={{
                         textAlign: 'center',
                         background: 'transparent',
