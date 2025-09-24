@@ -275,11 +275,15 @@ export default function GamePage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '1rem'
+                  gap: '2rem'
                 }}
               >
-                <span style={{ display: 'block' }}>{problem.num1}</span>
-                <span style={{ display: 'block' }}>{problem.symbol} {problem.num2}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span>{problem.num1}</span>
+                  <span>{problem.symbol}</span>
+                  <span>{problem.num2}</span>
+                  <span>=</span>
+                </div>
                 <div style={{ borderTop: '4px solid white', paddingTop: '1rem', minWidth: '200px' }}>
                   <form onSubmit={handleSubmit} style={{ display: 'inline-block' }}>
                     <input
@@ -297,7 +301,11 @@ export default function GamePage() {
                         color: 'white',
                         fontWeight: 'bold',
                         padding: '0.5rem 0',
-                        caretColor: 'white'
+                        caretColor: 'white',
+                        border: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'textfield',
+                        appearance: 'none'
                       }}
                       placeholder="?"
                       inputMode="numeric"
