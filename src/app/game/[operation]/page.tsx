@@ -188,7 +188,7 @@ export default function GamePage() {
     if (e) e.preventDefault()
     if (!problem || userAnswer === '' || !startTime) return
 
-    const isCorrect = parseInt(userAnswer) === problem.answer
+    const answerNumber = Number(userAnswer); const isCorrect = !isNaN(answerNumber) && answerNumber === problem.answer
     const responseTime = (Date.now() - startTime) / 1000
     const timerSettings = getTimerSettings(level)
 
@@ -424,7 +424,7 @@ export default function GamePage() {
 
                         // Auto-validate when correct number of digits is entered
                         const expectedDigits = problem.answer.toString().length
-                        if (value.length === expectedDigits && value !== '' && !value.includes('.')) {
+                        if (value.length >= expectedDigits && value !== '' && !value.includes('.')) {
                           // Small delay to ensure state is updated
                           setTimeout(() => {
                             handleSubmit()
