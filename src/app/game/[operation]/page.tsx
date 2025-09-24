@@ -30,7 +30,6 @@ export default function GamePage() {
   const [timeLeft, setTimeLeft] = useState(10)
   const [gameState, setGameState] = useState<'playing' | 'correct' | 'great' | 'perfect' | 'wrong' | 'timeout'>('playing')
   const [showFeedback, setShowFeedback] = useState(false)
-  const [shakeEffect, setShakeEffect] = useState(false)
   const [points, setPoints] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
 
@@ -78,8 +77,20 @@ export default function GamePage() {
         if (level <= 300) return { min: 10, max: 999 } // Three digits
         if (level <= 500) return { min: 100, max: 9999 } // Four digits
         return { min: 1000, max: 99999 } // Five digits
+      } else if (operation === 'multiplication') {
+        // Multiplication with reasonable progression based on user examples
+        if (level <= 100) return { min: 1, max: 9 } // 3*6 level
+        if (level <= 200) return { min: 1, max: 15, secondMin: 1, secondMax: 9 } // 12*7, 15*3 level
+        if (level <= 300) return { min: 1, max: 25, secondMin: 1, secondMax: 9 } // 25*8, 19*5 level
+        if (level <= 400) return { min: 10, max: 35, secondMin: 1, secondMax: 12 } // Gradual increase
+        if (level <= 500) return { min: 15, max: 45, secondMin: 2, secondMax: 15 } // Continue gradual
+        if (level <= 600) return { min: 20, max: 60, secondMin: 3, secondMax: 20 } // More gradual
+        if (level <= 700) return { min: 25, max: 80, secondMin: 5, secondMax: 25 } // Continuing
+        if (level <= 800) return { min: 30, max: 120, secondMin: 8, secondMax: 35 } // Getting harder
+        if (level <= 900) return { min: 50, max: 180, secondMin: 10, secondMax: 50 } // Approaching target
+        return { min: 100, max: 250, secondMin: 20, secondMax: 80 } // 205*34, 104*66 level
       } else {
-        // Multiplication and division - more gradual
+        // Division - more gradual
         if (level <= 100) return { min: 1, max: 9 } // Single digits
         if (level <= 250) return { min: 1, max: 19 } // Up to 19
         if (level <= 450) return { min: 1, max: 49 } // Up to 49
@@ -104,8 +115,14 @@ export default function GamePage() {
         return { num1, num2, answer, symbol: '-' }
 
       case 'multiplication':
-        num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
-        num2 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        if ('secondMin' in range) {
+          // Use different ranges for the two numbers to create more reasonable problems
+          num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+          num2 = Math.floor(Math.random() * ((range as any).secondMax - (range as any).secondMin + 1)) + (range as any).secondMin
+        } else {
+          num1 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+          num2 = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min
+        }
         answer = num1 * num2
         return { num1, num2, answer, symbol: '×' }
 
@@ -157,20 +174,18 @@ export default function GamePage() {
   }
 
   const triggerShakeEffect = () => {
-    setShakeEffect(true)
     if (containerRef.current) {
       containerRef.current.style.animation = 'shake 0.6s cubic-bezier(.36,.07,.19,.97) both'
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.style.animation = ''
+        }
+      }, 600)
     }
-    setTimeout(() => {
-      setShakeEffect(false)
-      if (containerRef.current) {
-        containerRef.current.style.animation = ''
-      }
-    }, 600)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!problem || userAnswer === '' || !startTime) return
 
     const isCorrect = parseInt(userAnswer) === problem.answer
@@ -412,7 +427,7 @@ export default function GamePage() {
                         if (value.length === expectedDigits && value !== '' && !value.includes('.')) {
                           // Small delay to ensure state is updated
                           setTimeout(() => {
-                            handleSubmit(new Event('submit') as any)
+                            handleSubmit()
                           }, 10)
                         }
                       }}
@@ -436,6 +451,7 @@ export default function GamePage() {
                       inputMode="numeric"
                       pattern="[0-9]*"
                       autoComplete="off"
+                      autoFocus
                     />
                   </form>
                 </div>
